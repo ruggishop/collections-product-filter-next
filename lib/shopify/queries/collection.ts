@@ -54,3 +54,44 @@ export const getCollectionProductsQuery = /* GraphQL */ `
   }
   ${productFragment}
 `;
+
+export const getCollectionProductsFilteredQuery = /* GraphQL */ `
+  query getCollectionProductsFiltered(
+    $handle: String!
+    $sortKey: ProductCollectionSortKeys
+    $reverse: Boolean
+    $filters: [ProductFilter!]
+  ) {
+    collection(handle: $handle) {
+      products(sortKey: $sortKey, reverse: $reverse, filters: $filters, first: 100) {
+        edges {
+          node {
+            ...product
+          }
+        }
+      }
+    }
+  }
+  ${productFragment}
+`;
+
+export const getCollectionFiltersQuery = /* GraphQL */ `
+  query getCollectionProductsFilters($handle: String!) {
+    collection(handle: $handle) {
+      products(first: 0) {
+        filters {
+          type
+          label
+          id
+          presentation
+          values {
+            count
+            id
+            label
+            input
+          }
+        }
+      }
+    }
+  }
+`;

@@ -12,6 +12,8 @@ import {
 } from './mutations/cart';
 import { getCartQuery } from './queries/cart';
 import {
+  getCollectionFiltersQuery,
+  getCollectionProductsFilteredQuery,
   getCollectionProductsQuery,
   getCollectionQuery,
   getCollectionsQuery
@@ -26,6 +28,7 @@ import {
 import {
   Cart,
   Collection,
+  CollectionProductsFilter,
   Connection,
   Image,
   Menu,
@@ -35,7 +38,10 @@ import {
   ShopifyCart,
   ShopifyCartOperation,
   ShopifyCollection,
+  ShopifyCollectionFilter,
+  ShopifyCollectionFilterOperation,
   ShopifyCollectionOperation,
+  ShopifyCollectionProductsFilteredOperation,
   ShopifyCollectionProductsOperation,
   ShopifyCollectionsOperation,
   ShopifyCreateCartOperation,
@@ -310,6 +316,54 @@ export async function getCollectionProducts({
   }
 
   return reshapeProducts(removeEdgesAndNodes(res.body.data.collection.products));
+}
+
+export async function getCollectionProductsFiltered({
+  collection,
+  reverse,
+  filters
+}: {
+  collection: string;
+  reverse?: boolean;
+  filters: CollectionProductsFilter[];
+}): Promise<Product[]> {
+  const res = await shopifyFetch<ShopifyCollectionProductsFilteredOperation>({
+    query: getCollectionProductsFilteredQuery,
+    variables: {
+      handle: collection,
+      reverse,
+      sortKey: 'CREATED',
+      filters: filters
+    }
+  });
+
+  if (!res.body.data.collection) {
+    console.log(`No collection found for \`${collection}\``);
+    return [];
+  }
+
+  return reshapeProducts(removeEdgesAndNodes(res.body.data.collection.products));
+}
+
+export async function getCollectionFilters({
+  collection
+}: {
+  collection: string;
+}): Promise<ShopifyCollectionFilter[]> {
+  const res = await shopifyFetch<ShopifyCollectionFilterOperation>({
+    query: getCollectionFiltersQuery,
+    variables: {
+      // TODO why is this erroring?
+      handle: collection
+    }
+  });
+
+  if (!res.body.data) {
+    console.log(`No collection found for \`${collection}\``);
+    return [];
+  }
+
+  return res.body.data.collection.products.filters;
 }
 
 export async function getCollections(): Promise<Collection[]> {

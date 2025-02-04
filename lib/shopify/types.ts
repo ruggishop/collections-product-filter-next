@@ -213,6 +213,77 @@ export type ShopifyCollectionProductsOperation = {
   };
 };
 
+export type ShopifyCollectionFilter = {
+  type: 'LIST' | 'PRICE_RANGE' | 'BOOLEAN';
+  label: string;
+  id: string;
+  presentation: 'IMAGE' | 'SWATCH' | 'TEXT';
+  values: {
+    count: number;
+    id: string;
+    input: string;
+    // TODO more fields
+  }[];
+};
+
+export type ShopifyCollectionProductsFilteredOperation = {
+  data: {
+    collection: {
+      products: Connection<ShopifyProduct>;
+    };
+  };
+  variables: {
+    handle: string;
+    reverse?: boolean;
+    sortKey?: string;
+    filters: CollectionProductsFilter[];
+  };
+};
+
+export type ShopifyCollectionFilterOperation = {
+  data: {
+    collection: {
+      products: {
+        filters: ShopifyCollectionFilter[];
+      };
+    };
+  };
+};
+
+export type CollectionProductsFilter =
+  | CollectionProductsFilterPrice
+  | CollectionProductsFilterAvailable
+  | CollectionProductsFilterProductType
+  | CollectionProductsFilterProductVendor
+  | CollectionProductsFilterTag;
+
+export type CollectionProductsFilterPrice = {
+  price?: {
+    min?: number;
+    max?: number;
+  };
+};
+
+export type CollectionProductsFilterAvailable = {
+  available?: boolean;
+};
+
+export type CollectionProductsFilterProductType = {
+  productType?: string;
+};
+
+export type CollectionProductsFilterProductVendor = {
+  productVendor?: string;
+};
+
+export type CollectionProductsFilterTag = {
+  tag?: string;
+};
+
+// TODO variantOption
+// TODO productMetafiled
+// TODO variantMetafield
+
 export type ShopifyCollectionsOperation = {
   data: {
     collections: Connection<ShopifyCollection>;

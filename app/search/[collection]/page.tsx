@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import Grid from 'components/grid';
 import ProductGridItems from 'components/layout/product-grid-items';
 import { defaultSort, sorting } from 'lib/constants';
+import { ProductCollectionFilter } from '../../../components/collections-product-filter';
 
 export async function generateMetadata(props: {
   params: Promise<{ collection: string }>;
@@ -36,9 +37,29 @@ export default async function CategoryPage(props: {
       {products.length === 0 ? (
         <p className="py-3 text-lg">{`No products found in this collection`}</p>
       ) : (
-        <Grid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <ProductGridItems products={products} />
-        </Grid>
+        <div className="flex flex-col gap-10">
+          <ProductCollectionFilter collection={params.collection} searchParams={searchParams ?? {}}>
+            {(products) => {
+              if (products.length === 0) {
+                return (
+                  <div>
+                    Nothing to see <code>¯\_(ツ)_/¯</code>
+                  </div>
+                );
+              }
+              return products.map((p) => {
+                return (
+                  <div key={p.id} className="rounded border p-2">
+                    {p.handle}
+                  </div>
+                );
+              });
+            }}
+          </ProductCollectionFilter>
+          <Grid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <ProductGridItems products={products} />
+          </Grid>
+        </div>
       )}
     </section>
   );

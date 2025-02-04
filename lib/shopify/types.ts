@@ -221,6 +221,7 @@ export type ShopifyCollectionFilter = {
   values: {
     count: number;
     id: string;
+    label: string;
     input: string;
     // TODO more fields
   }[];
@@ -229,14 +230,16 @@ export type ShopifyCollectionFilter = {
 export type ShopifyCollectionProductsFilteredOperation = {
   data: {
     collection: {
-      products: Connection<ShopifyProduct>;
+      products: {
+        nodes: ShopifyProduct[];
+      };
     };
   };
   variables: {
     handle: string;
     reverse?: boolean;
     sortKey?: string;
-    filters: CollectionProductsFilter[];
+    filters: object[]; // TODO pain
   };
 };
 
@@ -249,40 +252,6 @@ export type ShopifyCollectionFilterOperation = {
     };
   };
 };
-
-export type CollectionProductsFilter =
-  | CollectionProductsFilterPrice
-  | CollectionProductsFilterAvailable
-  | CollectionProductsFilterProductType
-  | CollectionProductsFilterProductVendor
-  | CollectionProductsFilterTag;
-
-export type CollectionProductsFilterPrice = {
-  price?: {
-    min?: number;
-    max?: number;
-  };
-};
-
-export type CollectionProductsFilterAvailable = {
-  available?: boolean;
-};
-
-export type CollectionProductsFilterProductType = {
-  productType?: string;
-};
-
-export type CollectionProductsFilterProductVendor = {
-  productVendor?: string;
-};
-
-export type CollectionProductsFilterTag = {
-  tag?: string;
-};
-
-// TODO variantOption
-// TODO productMetafiled
-// TODO variantMetafield
 
 export type ShopifyCollectionsOperation = {
   data: {

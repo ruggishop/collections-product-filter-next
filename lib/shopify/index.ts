@@ -28,7 +28,6 @@ import {
 import {
   Cart,
   Collection,
-  CollectionProductsFilter,
   Connection,
   Image,
   Menu,
@@ -321,18 +320,20 @@ export async function getCollectionProducts({
 export async function getCollectionProductsFiltered({
   collection,
   reverse,
+  sortKey,
   filters
 }: {
   collection: string;
   reverse?: boolean;
-  filters: CollectionProductsFilter[];
+  sortKey?: string;
+  filters: object[]; // TODO pain
 }): Promise<Product[]> {
   const res = await shopifyFetch<ShopifyCollectionProductsFilteredOperation>({
     query: getCollectionProductsFilteredQuery,
     variables: {
       handle: collection,
-      reverse,
-      sortKey: 'CREATED',
+      reverse: reverse,
+      sortKey: sortKey === 'CREATED_AT' ? 'CREATED' : sortKey,
       filters: filters
     }
   });
@@ -342,19 +343,21 @@ export async function getCollectionProductsFiltered({
     return [];
   }
 
-  return reshapeProducts(removeEdgesAndNodes(res.body.data.collection.products));
+  return reshapeProducts(res.body.data.collection.products.nodes);
 }
 
 export async function getCollectionFilters({
-  collection
+  collection,
+  filters
 }: {
   collection: string;
+  filters: object[];
 }): Promise<ShopifyCollectionFilter[]> {
   const res = await shopifyFetch<ShopifyCollectionFilterOperation>({
     query: getCollectionFiltersQuery,
     variables: {
-      // TODO why is this erroring?
-      handle: collection
+      handle: collection,
+      filters: filters
     }
   });
 

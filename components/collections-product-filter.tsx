@@ -1,5 +1,6 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import React from 'react';
 import { defaultSort, sorting } from '../lib/constants';
@@ -17,6 +18,20 @@ export type ProductCollectionFilterProps = {
 async function applyFilters(formData: FormData) {
   'use server';
 
+  // Grab the original search params, preserve the non-filter ones, and then filter out the filter
+  // params which will be populated with what is in the form data.
+  const headerData = await headers();
+  const referer = headerData.get('referer');
+  const params: URLSearchParams =
+    referer == null ? new URLSearchParams() : new URL(referer).searchParams;
+
+  const paramKeys = params.keys();
+  paramKeys.forEach((k) => {
+    if (k.startsWith(FILTER_PREFIX)) {
+      params.delete(k);
+    }
+  });
+
   // Get the collection name which will be used for redirect
   const collection = formData.get('collection');
 
@@ -25,7 +40,7 @@ async function applyFilters(formData: FormData) {
     new Set(
       formData
         .keys()
-        .filter((k) => k.startsWith('filter.'))
+        .filter((k) => k.startsWith(FILTER_PREFIX))
         .toArray()
     )
   );
@@ -43,16 +58,13 @@ async function applyFilters(formData: FormData) {
   const otherFilterPairs = pairs.filter((k) => k.key !== FILTER_PRICE_KEY);
 
   // Build the query params
-  const params = new URLSearchParams();
   otherFilterPairs.forEach((p) => params.set(p.key, p.value));
   if (pricesPairs.length > 0) {
     params.set(FILTER_PRICE_KEY, priceValues.join(':'));
   }
 
-  // TODO preserve the original query params
-
   // Redirect to the new URL
-  redirect(`/search/${collection}?${params.toString()}`);
+  return redirect(`/search/${collection}?${params.toString()}`);
 }
 
 export async function ProductCollectionFilter(props: ProductCollectionFilterProps) {
@@ -117,7 +129,7 @@ export async function ProductCollectionFilter(props: ProductCollectionFilterProp
         <div className="flex gap-2">
           {activeCollectionFilters.map((filter) => {
             return (
-              <div className="flex-1">
+              <div className="flex-1" key={filter.id}>
                 {filter.type === 'LIST' ? (
                   <FilterListItem filter={filter} activeFilters={activeFilters} />
                 ) : null}

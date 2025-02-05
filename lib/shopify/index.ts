@@ -356,6 +356,7 @@ export async function getCollectionFilters({
   const res = await shopifyFetch<ShopifyCollectionFilterOperation>({
     query: getCollectionFiltersQuery,
     variables: {
+      // TODO why is this erroring?
       handle: collection,
       filters: filters
     }

@@ -218,13 +218,15 @@ export type ShopifyCollectionFilter = {
   label: string;
   id: string;
   presentation: 'IMAGE' | 'SWATCH' | 'TEXT';
-  values: {
-    count: number;
-    id: string;
-    label: string;
-    input: string;
-    // TODO more fields
-  }[];
+  values: ShopifyCollectionFilterValue[];
+};
+
+export type ShopifyCollectionFilterValue = {
+  count: number;
+  id: string;
+  label: string;
+  input: string;
+  // TODO more fields
 };
 
 export type ShopifyCollectionProductsFilteredOperation = {

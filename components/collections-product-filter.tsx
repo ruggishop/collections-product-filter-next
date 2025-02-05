@@ -33,7 +33,7 @@ async function applyFilters(formData: FormData) {
   });
 
   // Get the collection name which will be used for redirect
-  const collection = formData.get('collection');
+  const collection = formData.get(COLLECTION_KEY);
 
   // Get the (unique) filter keys in the form data
   const filterKeys = Array.from(
@@ -50,18 +50,30 @@ async function applyFilters(formData: FormData) {
     return formData.getAll(key).map((value) => ({ key, value: value.toString() }));
   });
 
-  // Take out the price pairs, and then sort them (min -> max)
-  const pricesPairs = pairs.filter((k) => k.key === FILTER_PRICE_KEY);
-  const priceValues = pricesPairs.map((p) => parseFloat(p.value)).sort((a, b) => a - b);
+  // Take out the price pairs and parse their numeric values
+  const pricesPairs = pairs.filter((k) => k.key.startsWith(FILTER_PRICE_PREFIX));
+  const minPrice = parseFloat(
+    pricesPairs.find((p) => p.key === FILTER_PRICE_PREFIX + 'min')?.value ?? ''
+  );
+  const maxPrice = parseFloat(
+    pricesPairs.find((p) => p.key === FILTER_PRICE_PREFIX + 'max')?.value ?? ''
+  );
 
   // Filter out the price pairs from the other filters
-  const otherFilterPairs = pairs.filter((k) => k.key !== FILTER_PRICE_KEY);
+  const otherFilterPairs = pairs.filter((k) => !k.key.startsWith(FILTER_PRICE_PREFIX));
 
   // Build the query params
-  otherFilterPairs.forEach((p) => params.set(p.key, p.value));
-  if (pricesPairs.length > 0) {
-    params.set(FILTER_PRICE_KEY, priceValues.join(':'));
+  otherFilterPairs.forEach((p) => params.append(p.key, p.value));
+  // For the price, build a string like <min>:<max> and use it as the param value
+  if (pricesPairs.length > 0 && (!isNaN(minPrice) || !isNaN(maxPrice))) {
+    const left = isNaN(minPrice) ? null : `${minPrice}`;
+    const right = isNaN(maxPrice) ? null : `${maxPrice}`;
+    if (left != null && right != null) {
+      params.set(FILTER_PRICE_KEY, `${left}${PRICE_RANGE_SEPARATOR}${right}`);
+    }
   }
+
+  params.sort();
 
   // Redirect to the new URL
   return redirect(`/search/${collection}?${params.toString()}`);
@@ -124,7 +136,7 @@ export async function ProductCollectionFilter(props: ProductCollectionFilterProp
   return (
     <div className="flex flex-col gap-2">
       <form action={applyFilters} className="flex flex-col gap-2 border bg-white p-2">
-        <input type="hidden" name="collection" value={props.collection} />
+        <input type="hidden" name={COLLECTION_KEY} value={props.collection} />
 
         <div className="flex gap-2">
           {activeCollectionFilters.map((filter) => {
@@ -161,7 +173,7 @@ function filterInputStringToQueryObject(
   switch (filterGroup.type) {
     case 'PRICE_RANGE':
       let data: PriceRange = JSON.parse(filterGroup.values[0]?.input ?? '{}'); // TODO cleanup this init
-      const [min, max] = filter.value.split(':');
+      const [min, max] = filter.value.split(PRICE_RANGE_SEPARATOR);
       if (min != null && min != '') {
         data.price.min = parseFloat(min);
       }
@@ -181,6 +193,7 @@ function filterInputStringToQueryObject(
       return data;
     }
     case 'BOOLEAN':
+      console.warn('BOOLEAN filter group not supported');
       return null; // TODO
   }
 }
@@ -229,14 +242,14 @@ function FilterPriceItem(props: {
       <div className="font-bold">{props.filter.label}</div>
       <div className="flex items-center gap-2">
         <input
-          name={props.filter.id}
+          name={props.filter.id + '.min'}
           className="border p-2"
           type="number"
           placeholder="Min"
           defaultValue={props.activePriceRange?.price.min ?? ''}
         />
         <input
-          name={props.filter.id}
+          name={props.filter.id + '.max'}
           className="border p-2"
           type="number"
           placeholder="Max"
@@ -249,6 +262,9 @@ function FilterPriceItem(props: {
 
 const FILTER_PREFIX = 'filter.';
 const FILTER_PRICE_KEY = 'filter.v.price';
+const FILTER_PRICE_PREFIX = FILTER_PRICE_KEY + '.';
+const COLLECTION_KEY = 'collection';
+const PRICE_RANGE_SEPARATOR = ':';
 
 type ActiveFilter = { key: string; value: string };
 
@@ -264,16 +280,23 @@ function isPriceRange(u: unknown): u is PriceRange {
   return u != null && typeof u === 'object' && maybe.price != null; // TODO improve this
 }
 
-function parsePriceRangeFromFilters(availableFilters: ShopifyCollectionFilter[]) {
-  const input = availableFilters
-    .find((filter) => filter.type === 'PRICE_RANGE')
-    ?.values.at(0)?.input;
+function parsePriceRangeFromFilters(
+  availableFilters: ShopifyCollectionFilter[]
+): PriceRange | null {
+  const priceRangeFilter = availableFilters.find((filter) => filter.type === 'PRICE_RANGE');
+  if (priceRangeFilter == null) {
+    return null;
+  }
+
+  const input = priceRangeFilter.values.at(0)?.input;
   if (input == null) {
     return null;
   }
+
   const range = JSON.parse(input);
   if (!isPriceRange(range)) {
     return null;
   }
+
   return range;
 }
